@@ -213,7 +213,7 @@ static void calibrate_rapl() {
 	// Wait for a RAPL update
 	while (true) {
 		READ_ENERGY(s_rapl_values);
-		if (old_rapl_value != s_rapl_values[idx_pkg_energy]) {
+		if (unlikely(old_rapl_value != s_rapl_values[idx_pkg_energy])) {
 			old_rapl_value = s_rapl_values[idx_pkg_energy];
 			break;
 		}
@@ -221,9 +221,9 @@ static void calibrate_rapl() {
 	
 	clock_gettime(CLOCK_REALTIME, &time_start);
 	
-	while (updates < num_updates) {
+	while (likely(updates < num_updates)) {
 		READ_ENERGY(s_rapl_values);
-		if (old_rapl_value != s_rapl_values[idx_pkg_energy]) {
+		if (unlikely(old_rapl_value != s_rapl_values[idx_pkg_energy])) {
 			old_rapl_value = s_rapl_values[idx_pkg_energy];
 			updates++;
 		}
@@ -264,16 +264,16 @@ static void handle_sigalrm() {
 	READ_ENERGY(s_rapl_values);
 	now = gettimeofday_double();
 	
-	if (idx_pkg_energy != -1) {
+	if (likely(idx_pkg_energy != -1)) {
 		pkg_energy = s_rapl_values[idx_pkg_energy];
 	}
-	if (idx_pp0_energy != -1) {
+	if (likely(idx_pp0_energy != -1)) {
 		pp0_energy = s_rapl_values[idx_pp0_energy];
 	}
-	if (idx_pp1_energy != -1) {
+	if (likely(idx_pp1_energy != -1)) {
 		pp1_energy = s_rapl_values[idx_pp1_energy];
 	}
-	if (idx_dram_energy != -1) {
+	if (likely(idx_dram_energy != -1)) {
 		dram_energy = s_rapl_values[idx_dram_energy];
 	}
 	
@@ -287,13 +287,13 @@ static void wait_for_child() {
 	
 	setup_timer();
 
-	while (child_pid > 0) {
+	while (likely(child_pid > 0)) {
 		/* Sleep for one second */
 		nanosleep(&sleep_time, NULL);
-		if (__sync_bool_compare_and_swap(&sigchld_received, 1, 0)) {
+		if (unlikely(__sync_bool_compare_and_swap(&sigchld_received, 1, 0))) {
 			handle_sigchld();
 		}
-		if (__sync_bool_compare_and_swap(&sigalrm_received, 1, 0)) {
+		if (likely(__sync_bool_compare_and_swap(&sigalrm_received, 1, 0))) {
 			sigalrm_received = 0;
 			handle_sigalrm();
 		}
