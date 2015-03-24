@@ -1,5 +1,9 @@
 /*
  * trace-energy.cc: Runs a command and produces an energy trace of its execution.
+ *
+ * TODO:
+ * Use CLOCK_MONOTONIC_RAW as the clock source
+ * Use timer_settime() for higher precision timing
  */
 
 #include <stdio.h>
@@ -12,6 +16,7 @@
 #include <errno.h>
 #include <time.h>
 #include <string.h>
+#include <math.h>
 
 #include <vector>
 
@@ -80,9 +85,11 @@ static void do_signals() {
 }
 
 static const int timer_which = ITIMER_REAL;
+static double rapl_period_in_microsec = 1000.0;
 
 static void setup_timer() {
-	struct itimerval timer_value = { { 0, 5000 }, { 0, 1 } };
+	const int interval_multiplier = 5;
+	struct itimerval timer_value = { { 0, round(interval_multiplier * rapl_period_in_microsec) }, { 0, 1 } };
 	setitimer(timer_which, &timer_value, NULL);
 }
 
@@ -183,6 +190,44 @@ static double gettimeofday_double() {
 	return now.tv_sec + now.tv_usec * 0.000001;
 }
 
+static void calibrate_rapl() {
+	long long old_rapl_value = 0;
+	int updates = 0, num_updates = 1000;
+	
+	if (idx_pkg_energy == -1) {
+		fprintf(stderr, "trace-energy: No RAPL socket energy found, cannot calibrate!\n");
+		return;
+	}
+	
+	READ_ENERGY(s_rapl_values);
+	old_rapl_value = s_rapl_values[idx_pkg_energy];
+	
+	// Wait for a RAPL update
+	while (true) {
+		READ_ENERGY(s_rapl_values);
+		if (old_rapl_value != s_rapl_values[idx_pkg_energy]) {
+			old_rapl_value = s_rapl_values[idx_pkg_energy];
+			break;
+		}
+	}
+	
+	double time_start = gettimeofday_double();
+	
+	while (updates < num_updates) {
+		READ_ENERGY(s_rapl_values);
+		if (old_rapl_value != s_rapl_values[idx_pkg_energy]) {
+			old_rapl_value = s_rapl_values[idx_pkg_energy];
+			updates++;
+		}
+	}
+	
+	double time_end = gettimeofday_double();
+	double time_delta = time_end - time_start;
+	double time_per_update = time_delta / num_updates;
+	printf("trace-energy: Calibration result: %.6f ms between RAPL updates.\n", time_per_update * 1000.0);
+	rapl_period_in_microsec = time_per_update * 1000000.0;
+}
+
 static void handle_sigalrm() {
 	long long pkg_energy = 0, pp0_energy = 0, pp1_energy = 0, dram_energy = 0;
 	double now;
@@ -242,6 +287,16 @@ static void wait_for_child() {
 	fclose(fp);
 }
 
+static void do_warmup() {
+	// Warmup
+	struct timespec sleep_time_warm = { 0, 1000 };
+	sigalrm_handler(0);
+	nanosleep(&sleep_time_warm, NULL);
+	sigalrm_received = 0;
+	handle_sigalrm();
+	v_energy_numbers.pop_back();
+}
+
 static void do_fork_and_exec(int argc, char **argv) {
 	if (argc > 1) {
 		child_pid = fork();
@@ -265,6 +320,8 @@ int main(int argc, char **argv) {
 	v_energy_numbers.reserve(1000);
 	do_signals();
 	init_rapl();
+	calibrate_rapl();
+	do_warmup();
 	do_fork_and_exec(argc, argv);
 	return exit_code;
 }
