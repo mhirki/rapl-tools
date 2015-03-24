@@ -27,6 +27,7 @@
 
 static pid_t child_pid = -1;
 static int exit_code = EXIT_SUCCESS;
+static int sigchld_received = 0;
 static int sigalrm_received = 0;
 
 static int s_event_set = 0;
@@ -54,25 +55,7 @@ static std::vector<energy_numbers> v_energy_numbers;
 
 static void sigchld_handler(int sig) {
 	(void)sig;
-	int status = 0;
-	if (child_pid > 0) {
-		int rval = waitpid(child_pid, &status, WNOHANG);
-		if (rval < 0) {
-			perror("waitpid");
-		} else if (rval > 0) {
-			if (WIFEXITED(status)) {
-				int child_exit_code = WEXITSTATUS(status);
-				printf("trace-energy: Child exited normally with exit code %d\n", child_exit_code);
-				exit_code = child_exit_code;
-				child_pid = -1;
-			}
-			else if (WIFSIGNALED(status)) {
-				printf("trace-energy: Child was terminated by a signal\n");
-				exit_code = EXIT_FAILURE;
-				child_pid = -1;
-			}
-		}
-	}
+	sigchld_received = 1;
 }
 
 static void sigalrm_handler(int sig) {
@@ -253,6 +236,27 @@ static void calibrate_rapl() {
 	rapl_period_in_nanosec = time_per_update * 1e9;
 }
 
+static void handle_sigchld() {
+	int status = 0;
+	if (child_pid > 0) {
+		while (waitpid(child_pid, &status, WNOHANG) > 0) {
+			if (WIFEXITED(status)) {
+				int child_exit_code = WEXITSTATUS(status);
+				printf("trace-energy: Child exited normally with exit code %d\n", child_exit_code);
+				exit_code = child_exit_code;
+				child_pid = -1;
+				break;
+			}
+			else if (WIFSIGNALED(status)) {
+				printf("trace-energy: Child was terminated by a signal\n");
+				exit_code = EXIT_FAILURE;
+				child_pid = -1;
+				break;
+			}
+		}
+	}
+}
+
 static void handle_sigalrm() {
 	long long pkg_energy = 0, pp0_energy = 0, pp1_energy = 0, dram_energy = 0;
 	double now;
@@ -286,9 +290,12 @@ static void wait_for_child() {
 	while (child_pid > 0) {
 		/* Sleep for one second */
 		nanosleep(&sleep_time, NULL);
-		if (sigalrm_received) {
-			handle_sigalrm();
+		if (__sync_bool_compare_and_swap(&sigchld_received, 1, 0)) {
+			handle_sigchld();
+		}
+		if (__sync_bool_compare_and_swap(&sigalrm_received, 1, 0)) {
 			sigalrm_received = 0;
+			handle_sigalrm();
 		}
 	}
 	
