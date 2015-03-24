@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/resource.h>
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
@@ -84,18 +85,37 @@ static void do_signals() {
 	signal(SIGALRM, &sigalrm_handler);
 }
 
-static const int timer_which = ITIMER_REAL;
-static double rapl_period_in_microsec = 1000.0;
+static const clockid_t timer_clockid = CLOCK_REALTIME;
+static timer_t rapl_timer = 0;
+static double rapl_period_in_nanosec = 1e6;
 
 static void setup_timer() {
 	const int interval_multiplier = 5;
-	struct itimerval timer_value = { { 0, round(interval_multiplier * rapl_period_in_microsec) }, { 0, 1 } };
-	setitimer(timer_which, &timer_value, NULL);
+	struct sigevent ev;
+	memset(&ev, 0, sizeof(ev));
+	ev.sigev_notify = SIGEV_SIGNAL;
+	ev.sigev_signo = SIGALRM;
+	if (timer_create(timer_clockid, &ev, &rapl_timer) < 0) {
+		perror("timer_create");
+		return;
+	}
+	struct itimerspec timer_value = { { 0, round(interval_multiplier * rapl_period_in_nanosec) }, { 0, 1 } };
+	if (timer_settime(rapl_timer, 0, &timer_value, NULL) < 0) {
+		perror("timer_settime");
+		return;
+	}
 }
 
 static void reset_timer() {
-	struct itimerval timer_value = { { 0, 0 }, { 0, 0 } };
-	setitimer(timer_which, &timer_value, NULL);
+	struct itimerspec timer_value = { { 0, 0 }, { 0, 0 } };
+	if (timer_settime(rapl_timer, 0, &timer_value, NULL) < 0) {
+		perror("timer_settime");
+		return;
+	}
+	if (timer_delete(rapl_timer) < 0) {
+		perror("timer_delete");
+		return;
+	}
 }
 
 static bool init_rapl() {
@@ -187,17 +207,22 @@ static bool init_rapl() {
 static double gettimeofday_double() {
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	return now.tv_sec + now.tv_usec * 0.000001;
+	return now.tv_sec + now.tv_usec * 1e-6;
 }
 
 static void calibrate_rapl() {
 	long long old_rapl_value = 0;
 	int updates = 0, num_updates = 1000;
+	struct timespec time_start, time_end;
 	
 	if (idx_pkg_energy == -1) {
 		fprintf(stderr, "trace-energy: No RAPL socket energy found, cannot calibrate!\n");
 		return;
 	}
+	
+	// Warmup
+	clock_gettime(CLOCK_REALTIME, &time_start);
+	clock_gettime(CLOCK_REALTIME, &time_end);
 	
 	READ_ENERGY(s_rapl_values);
 	old_rapl_value = s_rapl_values[idx_pkg_energy];
@@ -211,7 +236,7 @@ static void calibrate_rapl() {
 		}
 	}
 	
-	double time_start = gettimeofday_double();
+	clock_gettime(CLOCK_REALTIME, &time_start);
 	
 	while (updates < num_updates) {
 		READ_ENERGY(s_rapl_values);
@@ -221,11 +246,11 @@ static void calibrate_rapl() {
 		}
 	}
 	
-	double time_end = gettimeofday_double();
-	double time_delta = time_end - time_start;
+	clock_gettime(CLOCK_REALTIME, &time_end);
+	double time_delta = (time_end.tv_sec - time_start.tv_sec) + (time_end.tv_nsec - time_start.tv_nsec) * 1e-9;
 	double time_per_update = time_delta / num_updates;
 	printf("trace-energy: Calibration result: %.6f ms between RAPL updates.\n", time_per_update * 1000.0);
-	rapl_period_in_microsec = time_per_update * 1000000.0;
+	rapl_period_in_nanosec = time_per_update * 1e9;
 }
 
 static void handle_sigalrm() {
@@ -281,7 +306,7 @@ static void wait_for_child() {
 		double pp0_energy = (v_energy_numbers[i].pp0 - v_energy_numbers[i - 1].pp0) * scaleFactor;
 		double pp1_energy = (v_energy_numbers[i].pp1 - v_energy_numbers[i - 1].pp1) * scaleFactor;
 		double dram_energy = (v_energy_numbers[i].dram - v_energy_numbers[i - 1].dram) * scaleFactor;
-		fprintf(fp, "%.6f, %f, %f, %f, %f\n", v_energy_numbers[i].timestamp, pkg_energy, pp0_energy, pp1_energy, dram_energy);
+		fprintf(fp, "%.6f, %.6f, %.6f, %.6f, %.6f\n", v_energy_numbers[i].timestamp, pkg_energy, pp0_energy, pp1_energy, dram_energy);
 	}
 	
 	fclose(fp);
@@ -301,14 +326,17 @@ static void do_fork_and_exec(int argc, char **argv) {
 	if (argc > 1) {
 		child_pid = fork();
 		if (child_pid == 0) {
+			do_affinity_all();
 			execvp(argv[1], &argv[1]);
 			perror("execlp");
 			exit(-1);
 		} else if (child_pid < 0) {
 			perror("fork");
 		} else {
-			// Set affinity to core 0
-			do_affinity(0);
+			// Increase our priority
+			if (setpriority(PRIO_PROCESS, 0, -5) < 0) {
+				perror("setpriority");
+			}
 			wait_for_child();
 		}
 	} else {
@@ -317,6 +345,8 @@ static void do_fork_and_exec(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+	// Set affinity to core 0
+	do_affinity(0);
 	v_energy_numbers.reserve(1000);
 	do_signals();
 	init_rapl();

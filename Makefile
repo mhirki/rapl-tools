@@ -82,7 +82,7 @@ trace-energy-1khz: trace-energy-1khz.cc util.cc
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
 
 trace-energy-time: trace-energy-time.cc util.cc
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS_PAPI) -lrt
 
 papi-perf-counters: papi-perf-counters.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
