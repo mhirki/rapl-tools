@@ -1,9 +1,5 @@
 /*
- * trace-energy.cc: Runs a command and produces an energy trace of its execution.
- *
- * TODO:
- * Use CLOCK_MONOTONIC_RAW as the clock source
- * Use timer_settime() for higher precision timing
+ * trace-energy-time.cc: Runs a command and produces an energy trace of its execution.
  */
 
 #include <stdio.h>
@@ -44,7 +40,7 @@ static int idx_dram_energy = -1;
 static const double scaleFactor = 1e-9;
 
 struct energy_numbers {
-	double timestamp;
+	struct timespec timestamp;
 	long long pkg;
 	long long pp0;
 	long long pp1;
@@ -187,12 +183,6 @@ static bool init_rapl() {
 	return true;
 }
 
-static double gettimeofday_double() {
-	struct timeval now;
-	gettimeofday(&now, NULL);
-	return now.tv_sec + now.tv_usec * 1e-6;
-}
-
 static void calibrate_rapl() {
 	long long old_rapl_value = 0;
 	int updates = 0, num_updates = 1000;
@@ -259,10 +249,10 @@ static void handle_sigchld() {
 
 static void handle_sigalrm() {
 	long long pkg_energy = 0, pp0_energy = 0, pp1_energy = 0, dram_energy = 0;
-	double now;
+	struct timespec now;
 	
 	READ_ENERGY(s_rapl_values);
-	now = gettimeofday_double();
+	clock_gettime(CLOCK_REALTIME, &now);
 	
 	if (likely(idx_pkg_energy != -1)) {
 		pkg_energy = s_rapl_values[idx_pkg_energy];
@@ -309,11 +299,12 @@ static void wait_for_child() {
 	
 	const int n = v_energy_numbers.size();
 	for (i = 1; i < n; i++) {
+		double timestamp = v_energy_numbers[i].timestamp.tv_sec + v_energy_numbers[i].timestamp.tv_nsec * 1e-9;
 		double pkg_energy = (v_energy_numbers[i].pkg - v_energy_numbers[i - 1].pkg) * scaleFactor;
 		double pp0_energy = (v_energy_numbers[i].pp0 - v_energy_numbers[i - 1].pp0) * scaleFactor;
 		double pp1_energy = (v_energy_numbers[i].pp1 - v_energy_numbers[i - 1].pp1) * scaleFactor;
 		double dram_energy = (v_energy_numbers[i].dram - v_energy_numbers[i - 1].dram) * scaleFactor;
-		fprintf(fp, "%.6f, %.6f, %.6f, %.6f, %.6f\n", v_energy_numbers[i].timestamp, pkg_energy, pp0_energy, pp1_energy, dram_energy);
+		fprintf(fp, "%.6f, %.6f, %.6f, %.6f, %.6f\n", timestamp, pkg_energy, pp0_energy, pp1_energy, dram_energy);
 	}
 	
 	fclose(fp);
