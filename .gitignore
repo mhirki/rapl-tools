@@ -1,0 +1,35 @@
+# Data files
+*.csv
+
+# Folders
+energy-data/
+gaps-data/
+
+# Binaries
+get-energy
+linux-print-clocks
+linux-test-clocks
+msr-get-core-voltage
+msr-poll-latency
+papi-list-components
+papi-list-perf-events
+papi-measure-calloc
+papi-measure-exp
+papi-measure-instruction
+papi-measure-malloc
+papi-perf-counters
+papi-perf-counters-latency
+papi-poll-energy
+papi-poll-gaps
+papi-poll-latency
+papi-poll-latency-multiple
+papi-poll-perf-latency
+papi-poll-pkg
+papi-poll-timings
+papi-poll-tsc-gaps
+test-itimer-prof
+test-setitimer-resolution
+trace-energy
+trace-energy-1khz
+trace-energy-time
+watcher
