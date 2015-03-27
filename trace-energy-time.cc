@@ -1,5 +1,7 @@
 /*
  * trace-energy-time.cc: Runs a command and produces an energy trace of its execution.
+ *
+ * This is an improved version that records timestamps.
  */
 
 #include <stdio.h>
@@ -97,6 +99,9 @@ static void reset_timer() {
 	}
 }
 
+/*
+ * Based on Filip Nybäck's energy profiling module in IgProf
+ */
 static bool init_rapl() {
 	if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT) {
 		fprintf(stderr, "PAPI library initialisation failed.\n");
@@ -348,7 +353,8 @@ int main(int argc, char **argv) {
 	v_energy_numbers.reserve(1000);
 	do_signals();
 	init_rapl();
-	calibrate_rapl();
+	// Calibration is disabled because it causes more problems than it solves
+	//calibrate_rapl();
 	do_warmup();
 	do_fork_and_exec(argc, argv);
 	return exit_code;

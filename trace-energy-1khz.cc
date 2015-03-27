@@ -1,7 +1,7 @@
 /*
  * trace-energy.cc: Runs a command and produces an energy trace of its execution.
  *
- * This version polls the RAPL counters every 0.9 ms.
+ * This version polls the RAPL counters every 0.8 ms.
  */
 
 #include <stdio.h>
@@ -92,6 +92,9 @@ static void reset_timer() {
 	setitimer(timer_which, &timer_value, NULL);
 }
 
+/*
+ * Based on Filip Nybäck's energy profiling module in IgProf
+ */
 static bool init_rapl() {
 	if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT) {
 		fprintf(stderr, "PAPI library initialisation failed.\n");
