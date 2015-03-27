@@ -2,7 +2,7 @@ CFLAGS = -Wall -Wextra -O2 -g
 CC = g++
 LIBS_PAPI = -lpapi
 
-BINARY_TARGETS = papi-poll-gaps papi-poll-energy papi-poll-pkg get-energy linux-test-clocks linux-print-clocks papi-poll-latency papi-poll-perf-latency msr-poll-latency msr-get-core-voltage papi-poll-timings papi-poll-tsc-gaps papi-poll-latency-multiple papi-measure-instruction papi-list-components papi-list-perf-events papi-measure-exp papi-measure-malloc papi-measure-calloc test-setitimer-resolution test-itimer-prof watcher trace-energy trace-energy-1khz trace-energy-time papi-perf-counters papi-perf-counters-latency
+BINARY_TARGETS = papi-poll-gaps papi-poll-energy papi-poll-pkg get-energy linux-test-clocks linux-print-clocks papi-poll-latency papi-poll-perf-latency msr-poll-latency msr-get-core-voltage papi-poll-timings papi-poll-tsc-gaps papi-poll-latency-multiple papi-measure-instruction papi-list-components papi-list-perf-events papi-measure-exp papi-measure-malloc papi-measure-calloc test-setitimer-resolution test-itimer-prof watcher trace-energy trace-energy-1khz trace-energy-with-time papi-perf-counters papi-perf-counters-latency
 
 all: $(BINARY_TARGETS)
 
@@ -81,7 +81,7 @@ trace-energy: trace-energy.cc util.cc
 trace-energy-1khz: trace-energy-1khz.cc util.cc
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
 
-trace-energy-time: trace-energy-time.cc util.cc
+trace-energy-with-time: trace-energy-with-time.cc util.cc
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS_PAPI) -lrt
 
 papi-perf-counters: papi-perf-counters.c
