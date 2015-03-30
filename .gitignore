@@ -31,5 +31,6 @@ test-itimer-prof
 test-setitimer-resolution
 trace-energy
 trace-energy-1khz
-trace-energy-time
+trace-energy-with-time
+trace-energy-v2
 watcher
