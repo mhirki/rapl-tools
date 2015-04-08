@@ -17,13 +17,18 @@
 #include <time.h>
 #include <string.h>
 #include <math.h>
+#include <sys/utsname.h>
 
 #include <vector>
 #include <string>
+#include <sstream>
 
 #include <papi.h>
 
 #include "util.h"
+
+// Version string
+const char *trace_energy_version = "2.1";
 
 // Frequency can be changed using the -F command line switch
 // Defaults to 200 Hz
@@ -31,6 +36,12 @@ static double sampling_frequency = 200.0;
 
 // Output file can be changed using the -o command line switch
 static std::string output_file = "energy-trace.csv";
+
+// The entire command line is stored in this string
+static std::string cmdline;
+
+// Timestamp at start
+time_t start_time = 0;
 
 // Child process CPU affinity to a specific core
 // -1 means to specific affinity
@@ -286,6 +297,46 @@ static void wait_for_child() {
 		exit(-1);
 	}
 	
+	fprintf(fp, "# trace-energy version %s output\n", trace_energy_version);
+	// Print formatted time
+	{
+		char formatted_time[256] = { 0 };
+		struct tm *tmp = NULL;
+		tmp = localtime(&start_time);
+		if (tmp == NULL) {
+			perror("localtime");
+		} else {
+			if (strftime(formatted_time, sizeof(formatted_time), "%a, %d %b %Y %H:%M:%S %z", tmp) == 0) {
+				fprintf(stderr, "strftime returned 0");
+			}
+		}
+		fprintf(fp, "# Captured started: %s\n", formatted_time);
+	}
+	// Print uname information
+	{
+		struct utsname info;
+		memset(&info, 0, sizeof(info));
+		uname(&info);
+		fprintf(fp, "# System name: %s\n", info.sysname);
+		fprintf(fp, "# Hostname: %s\n", info.nodename);
+		fprintf(fp, "# System release: %s\n", info.release);
+		fprintf(fp, "# System version: %s\n", info.version);
+		fprintf(fp, "# Architecture: %s\n", info.machine);
+	}
+	// Get the CPU information from /proc/cpuinfo
+	{
+		std::string cpu_model;
+		FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
+		if (!cpuinfo) {
+			fprintf(stderr, "Error: Failed to open /proc/cpuinfo\n");
+		} else {
+			// TODO: Parse the file
+		}
+		fclose(cpuinfo);
+		fprintf(fp, "# CPU model: %s\n", cpu_model.c_str());
+	}
+	fprintf(fp, "# Command line: %s\n", cmdline.c_str());
+	
 	const int n = v_energy_numbers.size();
 	for (i = 1; i < n; i++) {
 		double timestamp = v_energy_numbers[i].timestamp.tv_sec + v_energy_numbers[i].timestamp.tv_nsec * 1e-9;
@@ -310,7 +361,34 @@ static void do_warmup() {
 }
 
 static int process_command_line(int argc, char **argv) {
-	int consumed = 0, i;
+	int consumed = 0, i = 0;
+	
+	// Convert the command line to a string
+	{
+		std::ostringstream ss;
+		ss << argv[0];
+		for (i = 1; i < argc; i++) {
+			ss << ' ';
+			if (strstr(argv[i], " ") != NULL) {
+				// Turn into a quoted string
+				char *tmp = argv[i];
+				char c;
+				ss << '\'';
+				while ((c = *tmp++)) {
+					if (c == '\'') {
+						ss << "\\'";
+					} else {
+						ss << c;
+					}
+				}
+				ss << '\'';
+			} else {
+				ss << argv[i];
+			}
+		}
+		cmdline = ss.str();
+	}
+	
 	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-F") == 0) {
 			if (argc > i + 1) {
@@ -395,6 +473,7 @@ int main(int argc, char **argv) {
 	do_signals();
 	init_rapl();
 	do_warmup();
+	start_time = time(NULL);
 	do_fork_and_exec(argc - args_consumed, argv + args_consumed);
 	return exit_code;
 }
