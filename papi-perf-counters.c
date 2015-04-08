@@ -23,7 +23,7 @@ void matmul(const double *A, const double *B,
         }
 }
 
-int main(int /* argc */, char ** /* argv[] */)
+int main()
 {
     const int size = 300;
     double a[size][size];

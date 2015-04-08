@@ -19,7 +19,7 @@ static double gettimeofday_double() {
 	return now.tv_sec + now.tv_usec * 1e-6;
 }
 
-int main(int /* argc */, char ** /* argv[] */)
+int main()
 {
 	int event[NUM_EVENTS] = {PAPI_TOT_INS, PAPI_TOT_CYC, PAPI_BR_MSP, PAPI_L1_DCM };
 	long long values[NUM_EVENTS];
