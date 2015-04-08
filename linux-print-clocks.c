@@ -66,7 +66,7 @@ int main() {
 #ifdef HAVE_RDTSC
 	uint64_t tsc = 0;
 	RDTSC(tsc);
-	printf("RDTSC : %lld\n", (long long)tsc);
+	printf("RDTSC : %llu\n", (long long unsigned)tsc);
 #endif
 	return 0;
 }

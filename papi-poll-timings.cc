@@ -163,11 +163,11 @@ bool do_rapl() {
 	
 	int num_times = realtime_times.size();
 	for (i = 0; i < num_times; i++) {
-		printf("%lld.%09lld\t%lld.%09lld\t%lld.%09lld\t%lld\n",
+		printf("%lld.%09lld\t%lld.%09lld\t%lld.%09lld\t%llu\n",
 		       (long long)realtime_times[i].tv_sec, (long long)realtime_times[i].tv_nsec,
 		       (long long)monotonic_times[i].tv_sec, (long long)monotonic_times[i].tv_nsec,
 		       (long long)monotonic_raw_times[i].tv_sec, (long long)monotonic_raw_times[i].tv_nsec,
-		       (long long)rdtsc_times[i]);
+		       (long long unsigned)rdtsc_times[i]);
 	}
 	
 	return true;

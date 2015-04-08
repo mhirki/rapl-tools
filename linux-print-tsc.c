@@ -6,8 +6,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <sys/time.h>
-#include <time.h>
+#include <unistd.h>
 
 #if __x86_64__ || __i386__
 #define HAVE_RDTSC
@@ -22,7 +21,7 @@ int main() {
 #ifdef HAVE_RDTSC
 	uint64_t tsc = 0;
 	RDTSC(tsc);
-	printf("%lld\n", (long long)tsc);
+	printf("%llu\n", (long long unsigned)tsc);
 #else
 	printf("RDTSC only works on x86 platforms!\n");
 #endif
