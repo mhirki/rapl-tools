@@ -188,6 +188,7 @@ static bool init_rapl() {
 	return true;
 }
 
+#if 0
 static void calibrate_rapl() {
 	long long old_rapl_value = 0;
 	int updates = 0, num_updates = 1000;
@@ -230,6 +231,7 @@ static void calibrate_rapl() {
 	printf("trace-energy: Calibration result: %.6f ms between RAPL updates.\n", time_per_update * 1000.0);
 	rapl_period_in_nanosec = time_per_update * 1e9;
 }
+#endif
 
 static void handle_sigchld() {
 	int status = 0;
