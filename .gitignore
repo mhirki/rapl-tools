@@ -9,6 +9,8 @@ gaps-data/
 get-energy
 linux-print-clocks
 linux-test-clocks
+linux-print-timestamp
+linux-print-tsc
 msr-get-core-voltage
 msr-poll-latency
 papi-list-components

@@ -1,6 +1,7 @@
 /*
- * linux-test-clocks.cc
- * Test various clock sources available through clock_gettime().
+ * linux-print-clocks.c
+ * Print out the values of various clock sources.
+ * Author: Mikael Hirki
  */
 
 #include <stdio.h>

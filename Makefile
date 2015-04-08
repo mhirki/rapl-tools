@@ -2,7 +2,7 @@ CFLAGS = -Wall -Wextra -O2 -g
 CC = g++
 LIBS_PAPI = -lpapi
 
-BINARY_TARGETS = papi-poll-gaps papi-poll-energy papi-poll-pkg get-energy linux-test-clocks linux-print-clocks papi-poll-latency papi-poll-perf-latency msr-poll-latency msr-get-core-voltage papi-poll-timings papi-poll-tsc-gaps papi-poll-latency-multiple papi-measure-instruction papi-list-components papi-list-perf-events papi-measure-exp papi-measure-malloc papi-measure-calloc test-setitimer-resolution test-itimer-prof watcher trace-energy trace-energy-1khz trace-energy-with-time trace-energy-v2 papi-perf-counters papi-perf-counters-latency
+BINARY_TARGETS = papi-poll-gaps papi-poll-energy papi-poll-pkg get-energy linux-test-clocks linux-print-clocks linux-print-timestamp linux-print-tsc papi-poll-latency papi-poll-perf-latency msr-poll-latency msr-get-core-voltage papi-poll-timings papi-poll-tsc-gaps papi-poll-latency-multiple papi-measure-instruction papi-list-components papi-list-perf-events papi-measure-exp papi-measure-malloc papi-measure-calloc test-setitimer-resolution test-itimer-prof watcher trace-energy trace-energy-1khz trace-energy-with-time trace-energy-v2 papi-perf-counters papi-perf-counters-latency
 
 all: $(BINARY_TARGETS)
 
@@ -21,11 +21,17 @@ papi-poll-pkg: papi-poll-pkg.cc util.cc
 get-energy: get-energy.cc
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
 
-linux-test-clocks: linux-test-clocks.cc
+linux-test-clocks: linux-test-clocks.c
 	$(CC) $(CFLAGS) -o $@ $^ -lrt
 
-linux-print-clocks: linux-print-clocks.cc
+linux-print-clocks: linux-print-clocks.c
 	$(CC) $(CFLAGS) -o $@ $^ -lrt
+
+linux-print-timestamp: linux-print-timestamp.c
+	$(CC) $(CFLAGS) -o $@ $^ -lrt
+
+linux-print-tsc: linux-print-tsc.c
+	$(CC) $(CFLAGS) -o $@ $^
 
 papi-poll-latency: papi-poll-latency.cc util.cc
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
