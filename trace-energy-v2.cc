@@ -304,7 +304,7 @@ static void wait_for_child() {
 	fprintf(fp, "# trace-energy version %s output\n", trace_energy_version);
 	// Print formatted time
 	{
-		char formatted_time[256] = { 0 };
+		char formatted_time[256] = { '\0' };
 		struct tm *tmp = NULL;
 		tmp = localtime(&start_time);
 		if (tmp == NULL) {
@@ -369,6 +369,12 @@ static void wait_for_child() {
 			fclose(meminfo);
 			fprintf(fp, "# Total memory: %d kB\n", mem_total);
 		}
+	}
+	// Print current working directory
+	{
+		char wd[PATH_MAX] = { '\0' };
+		getcwd(wd, sizeof(wd));
+		fprintf(fp, "# Working directory: %s\n", wd);
 	}
 	fprintf(fp, "# Command line: %s\n", cmdline.c_str());
 	
