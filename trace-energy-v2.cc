@@ -310,7 +310,7 @@ static void wait_for_child() {
 				fprintf(stderr, "strftime returned 0");
 			}
 		}
-		fprintf(fp, "# Captured started: %s\n", formatted_time);
+		fprintf(fp, "# Capture started: %s\n", formatted_time);
 	}
 	// Print uname information
 	{
@@ -325,15 +325,46 @@ static void wait_for_child() {
 	}
 	// Get the CPU information from /proc/cpuinfo
 	{
-		std::string cpu_model;
 		FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
 		if (!cpuinfo) {
 			fprintf(stderr, "Error: Failed to open /proc/cpuinfo\n");
 		} else {
-			// TODO: Parse the file
+			char line[1024];
+			while (fgets(line, sizeof(line), cpuinfo)) {
+				// Find the first line containing "model name"
+				if (memcmp(line, "model name", strlen("model name")) == 0) {
+					char *colon = strchr(line, ':');
+					if (colon && colon[1]) {
+						char *model = colon + 2;
+						char *newline = strchr(model, '\n');
+						if (newline) *newline = '\0';
+						fprintf(fp, "# CPU model: %s\n", model);
+						break;
+					}
+				}
+			}
 		}
 		fclose(cpuinfo);
-		fprintf(fp, "# CPU model: %s\n", cpu_model.c_str());
+	}
+	// Use sysconf() to get the number of CPUs
+	{
+		long cpus_available = 0, cpus_online = 0;
+		cpus_available = sysconf(_SC_NPROCESSORS_CONF);
+		cpus_online = sysconf(_SC_NPROCESSORS_ONLN);
+		fprintf(fp, "# CPUs available: %ld\n", cpus_available);
+		fprintf(fp, "# CPUs online: %ld\n", cpus_online);
+	}
+	// Get total memory from /proc/meminfo
+	{
+		int mem_total = 0;
+		FILE *meminfo = fopen("/proc/meminfo", "r");
+		if (!meminfo) {
+			fprintf(stderr, "Error: Failed to open /proc/meminfo\n");
+		} else {
+			fscanf(meminfo, "MemTotal: %d", &mem_total);
+			fclose(meminfo);
+			fprintf(fp, "# Total memory: %d kB\n", mem_total);
+		}
 	}
 	fprintf(fp, "# Command line: %s\n", cmdline.c_str());
 	
