@@ -245,8 +245,10 @@ static void handle_sigalrm() {
 	if (likely(idx_pkg_energy != -1)) {
 		pkg_energy = s_rapl_values[idx_pkg_energy];
 		// PKG energy should always grow between samples
-		if (unlikely(pkg_energy == v_energy_numbers[idx_prev_sample].pkg)) {
-			is_duplicate = true;
+		if (likely(idx_prev_sample >= 0)) {
+			if (unlikely(pkg_energy == v_energy_numbers[idx_prev_sample].pkg)) {
+				is_duplicate = true;
+			}
 		}
 	}
 	if (likely(idx_pp0_energy != -1)) {
@@ -259,8 +261,10 @@ static void handle_sigalrm() {
 		dram_energy = s_rapl_values[idx_dram_energy];
 		// DRAM energy should always grow between samples
 		// Sometimes PKG energy updates before DRAM does, so check both
-		if (unlikely(dram_energy == v_energy_numbers[idx_prev_sample].dram)) {
-			is_duplicate = true;
+		if (likely(idx_prev_sample >= 0)) {
+			if (unlikely(dram_energy == v_energy_numbers[idx_prev_sample].dram)) {
+				is_duplicate = true;
+			}
 		}
 	}
 	
