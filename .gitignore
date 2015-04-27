@@ -12,6 +12,8 @@ linux-test-clocks
 linux-print-timestamp
 linux-print-tsc
 msr-get-core-voltage
+msr-get-perf-bias
+msr-set-perf-bias
 msr-poll-latency
 papi-list-components
 papi-list-perf-events

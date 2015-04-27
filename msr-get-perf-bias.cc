@@ -54,7 +54,6 @@ static int open_msr(int core) {
 	return fd;
 }
 
-#if 1
 static uint64_t read_msr(int fd, int which) {
 	uint64_t data;
 	
@@ -65,23 +64,6 @@ static uint64_t read_msr(int fd, int which) {
 	
 	return data;
 }
-#else
-static uint64_t read_msr(int fd, int which) {
-	uint64_t data;
-	
-	if (lseek(fd, which, SEEK_SET) == -1) {
-		perror("lseek");
-		exit(127);
-	}
-	
-	if (read(fd, &data, sizeof(data)) != sizeof(data)) {
-		perror("read");
-		exit(127);
-	}
-	
-	return data;
-}
-#endif
 
 #define CPU_SANDYBRIDGE		42
 #define CPU_SANDYBRIDGE_EP	45
@@ -197,8 +179,8 @@ int main(int argc, char **argv) {
 	printf("MSR_IA32_ENERGY_PERF_BIAS reads %016llx\n", (unsigned long long)result);
 	
 	// Read MSR_IA32_PM_ENABLE
-	result = read_msr(fd, MSR_IA32_PM_ENABLE);
-	printf("MSR_IA32_PM_ENABLE reads %016llx\n", (unsigned long long)result);
+	//result = read_msr(fd, MSR_IA32_PM_ENABLE);
+	//printf("MSR_IA32_PM_ENABLE reads %016llx\n", (unsigned long long)result);
 	
 	// Kill compiler warnings
 	(void)argc;
