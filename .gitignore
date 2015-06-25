@@ -38,3 +38,5 @@ trace-energy-1khz
 trace-energy-with-time
 trace-energy-v2
 watcher
+linux-find-gaps
+linux-find-gaps-lite
