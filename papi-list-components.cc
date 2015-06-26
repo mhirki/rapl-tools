@@ -2,6 +2,8 @@
  * papi-list-components.cc
  * List the available PAPI components.
  * Code based on IgProf energy profiling module by Filip Nybäck.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

@@ -4,6 +4,8 @@
  * The child program is terminated if it doesn't spend enough user and system time.
  *
  * Exit code will be EXIT_FAILURE if the child gets terminated by a signal.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

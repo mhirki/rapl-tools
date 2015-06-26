@@ -4,6 +4,8 @@
  * Code based on IgProf energy profiling module by Filip Nybäck.
  * 
  * Usage: papi-poll-energy <number of polls> <polling frequency>
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

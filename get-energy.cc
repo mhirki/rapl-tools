@@ -5,6 +5,8 @@
  * TODO:
  * Use waitpid() instead of wait().
  * Account for RAPL overflows.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

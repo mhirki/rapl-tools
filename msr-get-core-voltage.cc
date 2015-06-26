@@ -12,6 +12,9 @@
 /*                                                                    */
 /* Additional contributions by:                                       */
 /*   Romain Dolbeau -- romain @ dolbeau.org                           */
+/*                                                                    */
+/* Core voltage reading by:                                           */
+/*   Mikael Hirki <mikael.hirki@aalto.fi>                             */
 
 #include <stdio.h>
 #include <stdlib.h>

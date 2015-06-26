@@ -1,3 +1,9 @@
+/*
+ * Utility functions
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
+ */
+
 #include <sched.h>
 #include <stdio.h>
 

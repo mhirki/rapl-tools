@@ -1,7 +1,8 @@
 /*
  * linux-print-timestamp.c
  * Print the current UNIX timestamp at nanosecond precision.
- * Author: Mikael Hirki
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

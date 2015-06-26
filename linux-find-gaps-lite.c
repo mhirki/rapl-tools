@@ -3,7 +3,8 @@
  * Find any gaps in the execution of a busy loop program.
  * Goal is to potentially find signs of System Management Mode (SMM).
  * This the "lite" version which doesn't store any arrays in memory.
- * Author: Mikael Hirki
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

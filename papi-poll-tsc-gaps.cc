@@ -2,6 +2,8 @@
  * papi-poll-gaps.cc
  * Find the average gap between RAPL updates by polling via PAPI at max frequency.
  * Code based on IgProf energy profiling module by Filip Nybäck.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

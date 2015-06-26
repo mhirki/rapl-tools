@@ -1,6 +1,8 @@
 /*
  * test-setitimer-resolution.cc
  * Test the value returned by getitimer() after setting a timer using setitimer().
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

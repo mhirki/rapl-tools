@@ -12,6 +12,9 @@
 /*                                                                    */
 /* Additional contributions by:                                       */
 /*   Romain Dolbeau -- romain @ dolbeau.org                           */
+/*                                                                    */
+/* Perf bias modification by:                                         */
+/*   Mikael Hirki <mikael.hirki@aalto.fi>                             */
 
 #include <stdio.h>
 #include <stdlib.h>

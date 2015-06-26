@@ -3,6 +3,14 @@
  *
  * This is an improved version that records timestamps.
  * Added support for changing the frequency using the -F command line switch.
+ *
+ * Compilation: g++ -Wall -Wextra -O2 -g -o trace-energy-v2 trace-energy-v2.cc util.cc -lpapi -lrt
+ *
+ * Dependencies: PAPI (Performance Application Programming Interface)
+ *
+ * Usage: ./trace-energy-v2 [ -F <frequency> ] [ -o <output file> ] [ -c <child CPU affinity core> ] <program> [parameters]
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

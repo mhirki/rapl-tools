@@ -2,6 +2,8 @@
  * trace-energy-time.cc: Runs a command and produces an energy trace of its execution.
  *
  * This is an improved version that records timestamps.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

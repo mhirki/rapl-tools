@@ -1,7 +1,8 @@
 /*
  * linux-test-clocks.c
  * Test various clock sources available through clock_gettime().
- * Author: Mikael Hirki
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

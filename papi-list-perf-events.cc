@@ -2,6 +2,8 @@
  * papi-list-perf-events.cc
  * List the available events in perf_event component.
  * Code based on IgProf energy profiling module by Filip Nybäck.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

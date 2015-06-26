@@ -2,7 +2,8 @@
  * linux-find-gaps.c
  * Find any gaps in the execution of a busy loop program.
  * Goal is to potentially find signs of System Management Mode (SMM).
- * Author: Mikael Hirki
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

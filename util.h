@@ -1,3 +1,9 @@
+/*
+ * Utility functions
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
+ */
+
 extern "C" {
 	int do_affinity(int core);
 	int do_affinity_all();

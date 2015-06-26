@@ -2,6 +2,8 @@
  * papi-poll-latency-multiple.cc
  * Benchmark the latency of calling PAPI_read() for multiple RAPL counters.
  * Code based on IgProf energy profiling module by Filip Nybäck.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

@@ -2,6 +2,8 @@
  * papi-poll-timings.cc
  * Attempt to correlate RAPL updates with various timing sources.
  * Code based on IgProf energy profiling module by Filip Nybäck.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

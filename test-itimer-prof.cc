@@ -1,6 +1,8 @@
 /*
  * test-itimer-prof.cc
  * Test how well ITIMER_PROF works by counting the number of signals during a one second interval.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

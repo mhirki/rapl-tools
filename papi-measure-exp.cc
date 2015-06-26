@@ -2,6 +2,8 @@
  * papi-measure-exp.cc
  * Attempt to measure the average energy consumption of the exp() function.
  * Code based on IgProf energy profiling module by Filip Nybäck.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

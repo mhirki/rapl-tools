@@ -1,5 +1,7 @@
 /*
  * trace-energy.cc: Runs a command and produces an energy trace of its execution.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

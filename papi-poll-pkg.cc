@@ -7,6 +7,8 @@
  * The second one gives the energy on nanojoules.
  * 
  * Code based on IgProf energy profiling module by Filip Nybäck.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

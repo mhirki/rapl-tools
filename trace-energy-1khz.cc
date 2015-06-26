@@ -2,6 +2,8 @@
  * trace-energy.cc: Runs a command and produces an energy trace of its execution.
  *
  * This version polls the RAPL counters every 0.8 ms.
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>

@@ -1,7 +1,8 @@
 /*
  * linux-print-clocks.c
  * Print out the values of various clock sources.
- * Author: Mikael Hirki
+ *
+ * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
 
 #include <stdio.h>
