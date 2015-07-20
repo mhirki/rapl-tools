@@ -3,6 +3,7 @@
  *
  * This is an improved version that records timestamps.
  * Added support for changing the frequency using the -F command line switch.
+ * Version 2.2: Pass SIGINT (Ctrl-C on terminal) to the child process
  *
  * Compilation: g++ -Wall -Wextra -O2 -g -o trace-energy-v2 trace-energy-v2.cc util.cc -lpapi -lrt
  *
@@ -36,7 +37,7 @@
 #include "util.h"
 
 // Version string
-const char *trace_energy_version = "2.1";
+const char *trace_energy_version = "2.2";
 
 // Frequency can be changed using the -F command line switch
 // Defaults to 200 Hz
@@ -59,6 +60,7 @@ static pid_t child_pid = -1;
 static int exit_code = EXIT_SUCCESS;
 static int sigchld_received = 0;
 static int sigalrm_received = 0;
+static const char *argv0 = NULL;
 
 static int s_event_set = 0;
 static int s_num_events = 0;
@@ -93,9 +95,19 @@ static void sigalrm_handler(int sig) {
 	sigalrm_received = 1;
 }
 
+static void sigint_handler(int sig) {
+	if (child_pid > 0) {
+		kill(child_pid, sig);
+	} else {
+		exit(-1);
+	}
+}
+
 static void do_signals() {
 	signal(SIGCHLD, &sigchld_handler);
 	signal(SIGALRM, &sigalrm_handler);
+	signal(SIGINT, &sigint_handler);
+	signal(SIGTERM, &sigint_handler);
 }
 
 static const clockid_t timer_clockid = CLOCK_REALTIME;
@@ -338,9 +350,7 @@ static void wait_for_child() {
 	// Get the CPU information from /proc/cpuinfo
 	{
 		FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
-		if (!cpuinfo) {
-			fprintf(stderr, "Error: Failed to open /proc/cpuinfo\n");
-		} else {
+		if (cpuinfo) {
 			char line[1024];
 			while (fgets(line, sizeof(line), cpuinfo)) {
 				// Find the first line containing "model name"
@@ -355,8 +365,10 @@ static void wait_for_child() {
 					}
 				}
 			}
+			fclose(cpuinfo);
+		} else {
+			fprintf(stderr, "Warning: Failed to open /proc/cpuinfo\n");
 		}
-		fclose(cpuinfo);
 	}
 	// Use sysconf() to get the number of CPUs
 	{
@@ -370,12 +382,12 @@ static void wait_for_child() {
 	{
 		int mem_total = 0;
 		FILE *meminfo = fopen("/proc/meminfo", "r");
-		if (!meminfo) {
-			fprintf(stderr, "Error: Failed to open /proc/meminfo\n");
-		} else {
+		if (meminfo) {
 			fscanf(meminfo, "MemTotal: %d", &mem_total);
 			fclose(meminfo);
 			fprintf(fp, "# Total memory: %d kB\n", mem_total);
+		} else {
+			fprintf(stderr, "Warning: Failed to open /proc/meminfo\n");
 		}
 	}
 	// Print current working directory
@@ -407,6 +419,18 @@ static void do_warmup() {
 	sigalrm_received = 0;
 	handle_sigalrm();
 	v_energy_numbers.pop_back();
+}
+
+static void print_usage() {
+	fprintf(stderr, "Usage: %s [ -F <frequency> ] [ -o <output file> ] [ -c <child CPU affinity core> ] <program> [parameters]\n", argv0);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Execute the given program as a child process and record a trace of CPU power consumption while it is running.\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Options:\n");
+	fprintf(stderr, "  -F <frequency>                  Record power consumption at a given frequency (in Hz, defaults to %.0f)\n", sampling_frequency);
+	fprintf(stderr, "  -o <output file>                Write the output to a specific file (defaults to %s)\n", output_file.c_str());
+	fprintf(stderr, "  -c <child CPU affinity core>    Set the affinity for the child process to a specific core\n");
+	fprintf(stderr, "  -h, --help                      Display this usage information\n");
 }
 
 static int process_command_line(int argc, char **argv) {
@@ -477,8 +501,13 @@ static int process_command_line(int argc, char **argv) {
 				fprintf(stderr, "Error: Not enough arguments to -c\n");
 				consumed += 1;
 			}
+		} else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+			print_usage();
+			exit_code = EXIT_FAILURE;
+			break;
 		} else if (argv[i][0] == '-') {
 			fprintf(stderr, "Error: Unrecognized option '%s'\n", argv[i]);
+			exit_code = EXIT_FAILURE;
 			break;
 		} else {
 			break;
@@ -509,15 +538,20 @@ static void do_fork_and_exec(int argc, char **argv) {
 			wait_for_child();
 		}
 	} else {
-		fprintf(stderr, "Usage: %s [ -F <frequency> ] [ -o <output file> ] [ -c <child CPU affinity core> ] <program> [parameters]\n", argv[0]);
+		fprintf(stderr, "Error: Not enough parameters!\n");
+		print_usage();
 		exit_code = EXIT_FAILURE;
 	}
 }
 
 int main(int argc, char **argv) {
-	// Set affinity to core 0
+	argv0 = argv[0];
+	// Set our affinity to core 0 because PAPI reads the MSRs from core 0
 	do_affinity(0);
 	int args_consumed = process_command_line(argc, argv);
+	if (exit_code != EXIT_SUCCESS) {
+		return exit_code;
+	}
 	v_energy_numbers.reserve(1000);
 	do_signals();
 	init_rapl();
