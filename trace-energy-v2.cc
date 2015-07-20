@@ -36,6 +36,9 @@
 
 #include "util.h"
 
+// Name of this program
+const char *trace_energy_name = "trace-energy-v2";
+
 // Version string
 const char *trace_energy_version = "2.2";
 
@@ -238,13 +241,13 @@ static void handle_sigchld() {
 		while (waitpid(child_pid, &status, WNOHANG) > 0) {
 			if (WIFEXITED(status)) {
 				int child_exit_code = WEXITSTATUS(status);
-				printf("trace-energy: Child exited normally with exit code %d\n", child_exit_code);
+				printf("%s: Child exited normally with exit code %d\n", trace_energy_name, child_exit_code);
 				exit_code = child_exit_code;
 				child_pid = -1;
 				break;
 			}
 			else if (WIFSIGNALED(status)) {
-				printf("trace-energy: Child was terminated by a signal\n");
+				printf("%s: Child was terminated by a signal\n", trace_energy_name);
 				exit_code = EXIT_FAILURE;
 				child_pid = -1;
 				break;
@@ -321,7 +324,7 @@ static void wait_for_child() {
 		exit(-1);
 	}
 	
-	fprintf(fp, "# trace-energy version %s output\n", trace_energy_version);
+	fprintf(fp, "# %s version %s output\n", trace_energy_name, trace_energy_version);
 	// Print formatted time
 	{
 		char formatted_time[256] = { '\0' };
