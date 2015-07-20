@@ -1,5 +1,5 @@
 /*
- * trace-temp.cc: Runs a command and produces a CPU temperature trace of its execution.
+ * trace-temp-msr.cc: Runs a command and produces a CPU temperature trace of its execution.
  *
  * This tool is based on trace-energy-v2.
  *
@@ -7,11 +7,11 @@
  * Added support for changing the frequency using the -F command line switch.
  * Version 2.2: Pass SIGINT (Ctrl-C on terminal) to the child process
  *
- * Compilation: g++ -Wall -Wextra -O2 -g -o trace-temp trace-temp.cc util.cc -lpapi -lrt
+ * Compilation: g++ -Wall -Wextra -O2 -g -o trace-temp-msr trace-temp-msr.cc util.cc -lpapi -lrt
  *
  * Dependencies: PAPI (Performance Application Programming Interface)
  *
- * Usage: ./trace-temp [ -F <frequency> ] [ -o <output file> ] [ -c <child CPU affinity core> ] <program> [parameters]
+ * Usage: ./trace-temp-msr [ -F <frequency> ] [ -o <output file> ] [ -c <child CPU affinity core> ] <program> [parameters]
  *
  * Author: Mikael Hirki <mikael.hirki@aalto.fi>
  */
@@ -43,6 +43,9 @@
 #define MSR_IA32_TEMPERATURE_TARGET	0x000001a2
 #define MSR_IA32_PACKAGE_THERM_STATUS		0x000001b1
 
+// Name of this program
+const char *trace_temp_name = "trace-temp-msr";
+
 // Version string
 const char *trace_temp_version = "2.2";
 
@@ -73,12 +76,19 @@ static const char *argv0 = NULL;
 static short tjmax = 100;
 
 // File descriptor fore core 0 MSR file
+// Right now this is hard-coded to support up to 4 cores
 static int core0_fd = -1;
+static int core1_fd = -1;
+static int core2_fd = -1;
+static int core3_fd = -1;
 
 struct temp_numbers {
 	struct timespec timestamp;
 	short pkg_temp;
 	short core0_temp;
+	short core1_temp;
+	short core2_temp;
+	short core3_temp;
 };
 
 static std::vector<temp_numbers> v_temp_numbers;
@@ -141,18 +151,20 @@ static void reset_timer() {
 	}
 }
 
-static bool open_msr(int *fd_out) {
-	const char *msr_filename = "/dev/cpu/0/msr";
-	int fd;
+static int open_msr(int core) {
+	char msr_filename[1024] = { '\0' };
+	int fd = -1;
 	
-	*fd_out = fd = open(msr_filename, O_RDONLY);
+	snprintf(msr_filename, sizeof(msr_filename), "/dev/cpu/%d/msr", core);
+	
+	fd = open(msr_filename, O_RDONLY);
 	if (fd < 0) {
 		perror("open");
 		fprintf(stderr, "open_msr failed while trying to open %s!\n", msr_filename);
-		return false;
+		return fd;
 	}
 	
-	return true;
+	return fd;
 }
 
 static bool read_msr(int fd, unsigned msr_offset, uint64_t *msr_out) {
@@ -168,13 +180,17 @@ static bool read_msr(int fd, unsigned msr_offset, uint64_t *msr_out) {
 static bool init_temp() {
 	uint64_t msr_temp_target = 0;
 	
-	if (!open_msr(&core0_fd)) {
+	if ((core0_fd = open_msr(0)) < 0) {
 		return false;
 	}
 	
+	core1_fd = open_msr(1);
+	core2_fd = open_msr(2);
+	core3_fd = open_msr(3);
+	
 	if (read_msr(core0_fd, MSR_IA32_TEMPERATURE_TARGET, &msr_temp_target)) {
 		unsigned tjmax_new = (msr_temp_target >> 16) & 0xff;
-		printf("TjMax is %u degrees C\n", tjmax_new);
+		printf("%s: TjMax is %u degrees C\n", trace_temp_name, tjmax_new);
 		tjmax = tjmax_new;
 	} else {
 		fprintf(stderr, "Failed to read MSR_IA32_TEMPERATURE_TARGET!\n");
@@ -184,10 +200,10 @@ static bool init_temp() {
 	return true;
 }
 
-static short read_temp(unsigned msr_offset) {
+static short read_temp(int fd, unsigned msr_offset) {
 	uint64_t msr_therm_status = 0;
 	
-	if (read_msr(core0_fd, msr_offset, &msr_therm_status)) {
+	if (read_msr(fd, msr_offset, &msr_therm_status)) {
 		return tjmax - ((msr_therm_status >> 16) & 0x7f);
 	} else {
 		fprintf(stderr, "Failed to read MSR offset 0x%04x\n", msr_offset);
@@ -202,13 +218,13 @@ static void handle_sigchld() {
 		while (waitpid(child_pid, &status, WNOHANG) > 0) {
 			if (WIFEXITED(status)) {
 				int child_exit_code = WEXITSTATUS(status);
-				printf("trace-temp: Child exited normally with exit code %d\n", child_exit_code);
+				printf("%s: Child exited normally with exit code %d\n", trace_temp_name, child_exit_code);
 				exit_code = child_exit_code;
 				child_pid = -1;
 				break;
 			}
 			else if (WIFSIGNALED(status)) {
-				printf("trace-temp: Child was terminated by a signal\n");
+				printf("%s: Child was terminated by a signal\n", trace_temp_name);
 				exit_code = EXIT_FAILURE;
 				child_pid = -1;
 				break;
@@ -218,13 +234,16 @@ static void handle_sigchld() {
 }
 
 static void handle_sigalrm() {
-	short pkg_temp = 0, core0_temp = 0;
+	short pkg_temp = 0, core0_temp = 0, core1_temp = 0, core2_temp = 0, core3_temp = 0;
 	struct timespec now = { 0, 0 };
 	int idx_prev_sample = v_temp_numbers.size() - 1;
 	bool is_duplicate = true; // Ignore duplicates in case we are supersampling
 	
-	pkg_temp = read_temp(MSR_IA32_PACKAGE_THERM_STATUS);
-	core0_temp = read_temp(MSR_IA32_THERM_STATUS);
+	pkg_temp = read_temp(core0_fd, MSR_IA32_PACKAGE_THERM_STATUS);
+	core0_temp = read_temp(core0_fd, MSR_IA32_THERM_STATUS);
+	core1_temp = read_temp(core1_fd, MSR_IA32_THERM_STATUS);
+	core2_temp = read_temp(core2_fd, MSR_IA32_THERM_STATUS);
+	core3_temp = read_temp(core3_fd, MSR_IA32_THERM_STATUS);
 	clock_gettime(gettime_clockid, &now);
 	
 	if (likely(idx_prev_sample >= 0)) {
@@ -232,13 +251,19 @@ static void handle_sigalrm() {
 			is_duplicate = false;
 		} else if (unlikely(core0_temp != v_temp_numbers[idx_prev_sample].core0_temp)) {
 			is_duplicate = false;
+		} else if (unlikely(core1_temp != v_temp_numbers[idx_prev_sample].core1_temp)) {
+			is_duplicate = false;
+		} else if (unlikely(core2_temp != v_temp_numbers[idx_prev_sample].core2_temp)) {
+			is_duplicate = false;
+		} else if (unlikely(core3_temp != v_temp_numbers[idx_prev_sample].core3_temp)) {
+			is_duplicate = false;
 		}
 	} else {
 		is_duplicate = false;
 	}
 	
-	if (unlikely(!is_duplicate)) {
-		struct temp_numbers numbers = { now, pkg_temp, core0_temp };
+	if (likely(!is_duplicate)) {
+		struct temp_numbers numbers = { now, pkg_temp, core0_temp, core1_temp, core2_temp, core3_temp };
 		v_temp_numbers.push_back(numbers);
 	}
 }
@@ -270,7 +295,7 @@ static void wait_for_child() {
 		exit(-1);
 	}
 	
-	fprintf(fp, "# trace-temp version %s output\n", trace_temp_version);
+	fprintf(fp, "# %s version %s output\n", trace_temp_name, trace_temp_version);
 	// Print formatted time
 	{
 		char formatted_time[256] = { '\0' };
@@ -352,7 +377,10 @@ static void wait_for_child() {
 		double timestamp = v_temp_numbers[i].timestamp.tv_sec + v_temp_numbers[i].timestamp.tv_nsec * 1e-9;
 		int pkg_temp = v_temp_numbers[i].pkg_temp;
 		int core0_temp = v_temp_numbers[i].core0_temp;
-		fprintf(fp, "%.6f, %d, %d\n", timestamp, pkg_temp, core0_temp);
+		int core1_temp = v_temp_numbers[i].core1_temp;
+		int core2_temp = v_temp_numbers[i].core2_temp;
+		int core3_temp = v_temp_numbers[i].core3_temp;
+		fprintf(fp, "%.6f, %d, %d, %d, %d, %d\n", timestamp, pkg_temp, core0_temp, core1_temp, core2_temp, core3_temp);
 	}
 	
 	fclose(fp);
