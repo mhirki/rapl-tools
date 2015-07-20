@@ -50,10 +50,11 @@ static double gettimeofday_double() {
 
 static void sighandler(int signum) {
 	printf("Received signal %d\n", signum);
-	if (child_pid > 0)
+	if (child_pid > 0) {
 		kill(child_pid, signum);
-	else
+	} else {
 		exit(-1);
+	}
 }
 
 static void do_signals() {
@@ -151,7 +152,7 @@ static bool init_rapl() {
 
 static void do_fork_and_exec(int argc, char **argv) {
 	if (argc > 1) {
-		pid_t child_pid = fork();
+		child_pid = fork();
 		if (child_pid == 0) {
 			execvp(argv[1], &argv[1]);
 			perror("execlp");
