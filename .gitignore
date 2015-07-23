@@ -37,6 +37,7 @@ trace-energy
 trace-energy-1khz
 trace-energy-with-time
 trace-energy-v2
+trace-temp-msr
 watcher
 linux-find-gaps
 linux-find-gaps-lite
