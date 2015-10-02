@@ -1,14 +1,17 @@
 CFLAGS = -Wall -Wextra -O2 -g
+CXXFLAGS = $(CFLAGS)
 CC = gcc
 CXX = g++
 LIBS_PAPI = -lpapi
 
-BINARY_TARGETS = papi-poll-gaps papi-poll-energy papi-poll-pkg get-energy linux-test-clocks linux-print-clocks linux-print-timestamp linux-print-tsc papi-poll-latency papi-poll-perf-latency msr-poll-latency msr-get-core-voltage msr-get-perf-bias msr-set-perf-bias papi-poll-timings papi-poll-tsc-gaps papi-poll-latency-multiple papi-measure-instruction papi-list-components papi-list-perf-events papi-measure-exp papi-measure-malloc papi-measure-calloc test-setitimer-resolution test-itimer-prof watcher trace-energy trace-energy-1khz trace-energy-with-time trace-energy-v2 trace-temp-msr papi-perf-counters papi-perf-counters-latency linux-find-gaps linux-find-gaps-lite
+BINARY_TARGETS = papi-poll-gaps papi-poll-energy papi-poll-pkg get-energy linux-test-clocks linux-print-clocks linux-print-timestamp linux-print-tsc papi-poll-latency papi-poll-perf-latency msr-poll-gaps msr-poll-latency msr-get-core-voltage msr-get-perf-bias msr-set-perf-bias papi-poll-timings papi-poll-tsc-gaps papi-poll-latency-multiple papi-measure-instruction papi-list-components papi-list-perf-events papi-measure-exp papi-measure-malloc papi-measure-calloc test-setitimer-resolution test-itimer-prof watcher trace-energy trace-energy-1khz trace-energy-with-time trace-energy-v2 trace-temp-msr papi-perf-counters papi-perf-counters-latency linux-find-gaps linux-find-gaps-lite
 
 all: $(BINARY_TARGETS)
 
 clean:
 	rm -f $(BINARY_TARGETS)
+
+.PHONY: all clean
 
 papi-poll-gaps: papi-poll-gaps.cc util.cc
 	$(CXX) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
@@ -25,9 +28,6 @@ get-energy: get-energy.cc
 linux-find-gaps: linux-find-gaps.c
 	$(CC) $(CFLAGS) -o $@ $^ -lm
 
-linux-find-gaps-lite: linux-find-gaps-lite.c
-	$(CC) $(CFLAGS) -o $@ $^
-
 linux-test-clocks: linux-test-clocks.c
 	$(CC) $(CFLAGS) -o $@ $^ -lrt
 
@@ -36,9 +36,6 @@ linux-print-clocks: linux-print-clocks.c
 
 linux-print-timestamp: linux-print-timestamp.c
 	$(CC) $(CFLAGS) -o $@ $^ -lrt
-
-linux-print-tsc: linux-print-tsc.c
-	$(CC) $(CFLAGS) -o $@ $^
 
 papi-poll-latency: papi-poll-latency.cc util.cc
 	$(CXX) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
@@ -54,18 +51,6 @@ papi-poll-timings: papi-poll-timings.cc util.cc
 
 papi-poll-tsc-gaps: papi-poll-tsc-gaps.cc util.cc
 	$(CXX) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
-
-msr-poll-latency: msr-poll-latency.cc
-	$(CXX) $(CFLAGS) -o $@ $^
-
-msr-get-core-voltage: msr-get-core-voltage.cc
-	$(CXX) $(CFLAGS) -o $@ $^
-
-msr-get-perf-bias: msr-get-perf-bias.cc
-	$(CXX) $(CFLAGS) -o $@ $^
-
-msr-set-perf-bias: msr-set-perf-bias.cc
-	$(CXX) $(CFLAGS) -o $@ $^
 
 papi-measure-instruction: papi-measure-instruction.cc util.cc
 	$(CXX) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
@@ -84,15 +69,6 @@ papi-list-components: papi-list-components.cc
 
 papi-list-perf-events: papi-list-perf-events.cc
 	$(CXX) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
-
-test-setitimer-resolution: test-setitimer-resolution.cc
-	$(CXX) $(CFLAGS) -o $@ $^
-
-test-itimer-prof: test-itimer-prof.cc
-	$(CXX) $(CFLAGS) -o $@ $^
-
-watcher: watcher.cc
-	$(CXX) $(CFLAGS) -o $@ $^
 
 trace-energy: trace-energy.cc util.cc
 	$(CXX) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)

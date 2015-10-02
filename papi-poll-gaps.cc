@@ -19,6 +19,9 @@
 
 #define READ_ENERGY(a) PAPI_read(s_event_set, a)
 
+/* The number of gaps to be observed */
+#define MAX_GAPS 1000
+
 static double gettimeofday_double() {
 	struct timeval now;
 	gettimeofday(&now, NULL);
@@ -114,12 +117,11 @@ bool do_rapl() {
 	double fnow = fstart;
 	double gap = 0.0;
 	std::vector<double> gaps;
-	gaps.reserve(1000);
+	gaps.reserve(MAX_GAPS);
 	double sum_gaps = 0.0;
 	double biggest_gap = 0.0;
 	int num_gaps = -1;
-	const int num_iterations = 1000000;
-	for (iteration = 0; iteration < num_iterations; iteration++) {
+	for (iteration = 0; num_gaps < MAX_GAPS; iteration++) {
 		READ_ENERGY(s_values);
 		if (s_values[idx_pkg_energy] != prev_energy) {
 			prev_energy = s_values[idx_pkg_energy];
@@ -133,15 +135,15 @@ bool do_rapl() {
 					biggest_gap = gap;
 				gaps.push_back(gap);
 			}
-			printf("%lld at %f seconds, %f second gap since previous\n", prev_energy, fnow - fstart, gap);
+			//printf("%lld at %f seconds, %f second gap since previous\n", prev_energy, fnow - fstart, gap);
 			fprev = fnow;
 		}
 	}
 	
 	fnow = gettimeofday_double();
-	printf("%d iterations in %f seconds.\n", num_iterations, fnow - fstart);
-	printf("Polling rate of %f hz.\n", num_iterations / (fnow - fstart));
-	printf("PAPI polling delay of %f microseconds.\n", (fnow - fstart) / num_iterations * 1000000.0);
+	printf("%d iterations in %f seconds.\n", iteration, fnow - fstart);
+	printf("Polling rate of %f hz.\n", iteration / (fnow - fstart));
+	printf("PAPI polling delay of %f microseconds.\n", (fnow - fstart) / iteration * 1000000.0);
 	printf("Biggest gap was %f millisecond.\n", biggest_gap * 1000.0);
 	double avg_gap = sum_gaps / num_gaps;
 	printf("Average gap of %f milliseconds.\n", avg_gap * 1000.0);
