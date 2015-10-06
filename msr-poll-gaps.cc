@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
 	fd=open_msr(core);
 	
 	// Benchmark MSR register reads
-	uint64_t prev_energy = 0;
+	uint64_t prev_energy = read_msr(fd, MSR_PKG_ENERGY_STATUS);
 	double fstart = gettimeofday_double();
 	double fprev = fstart;
 	double fnow = fstart;
