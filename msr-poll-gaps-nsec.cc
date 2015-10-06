@@ -329,11 +329,11 @@ int main(int argc, char **argv) {
 	
 	clock_gettime(CLOCK_REALTIME, &tnow);
 	struct timespec ttotal = {0, 0};
-	timedelta(&ttotal, &tnow, &tprev);
+	timedelta(&ttotal, &tnow, &tstart);
 	double time_spent = timespec_to_double(&ttotal);
 	printf("%d iterations in %f seconds.\n", iteration, time_spent);
 	printf("Polling rate of %f hz.\n", iteration / time_spent);
-	printf("PAPI polling delay of %f microseconds.\n", time_spent / iteration * 1000000.0);
+	printf("MSR polling delay of %f microseconds.\n", time_spent / iteration * 1000000.0);
 	printf("Biggest gap was %f millisecond.\n", biggest_gap * 1000.0);
 	double avg_gap = sum_gaps / num_gaps;
 	printf("Average gap of %f milliseconds.\n", avg_gap * 1000.0);
