@@ -15,6 +15,7 @@ msr-get-core-voltage
 msr-get-perf-bias
 msr-set-perf-bias
 msr-poll-gaps
+msr-poll-gaps-nsec
 msr-poll-latency
 papi-list-components
 papi-list-perf-events
