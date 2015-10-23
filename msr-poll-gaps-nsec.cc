@@ -106,7 +106,6 @@ static int open_msr(int core) {
 	return fd;
 }
 
-#if 1
 static uint64_t read_msr(int fd, int which) {
 	uint64_t data;
 	
@@ -116,124 +115,6 @@ static uint64_t read_msr(int fd, int which) {
 	}
 	
 	return data;
-}
-#else
-static uint64_t read_msr(int fd, int which) {
-	uint64_t data;
-	
-	if (lseek(fd, which, SEEK_SET) == -1) {
-		perror("lseek");
-		exit(127);
-	}
-	
-	if (read(fd, &data, sizeof(data)) != sizeof(data)) {
-		perror("read");
-		exit(127);
-	}
-	
-	return data;
-}
-#endif
-
-#define CPU_SANDYBRIDGE		42
-#define CPU_SANDYBRIDGE_EP	45
-#define CPU_IVYBRIDGE		58
-#define CPU_IVYBRIDGE_EP	62
-#define CPU_HASWELL		60
-
-static int detect_cpu(void) {
-	
-	FILE *fff;
-	
-	int family,model=-1;
-	char buffer[BUFSIZ],*result;
-	char vendor[BUFSIZ];
-	
-	fff=fopen("/proc/cpuinfo","r");
-	if (fff==NULL) return -1;
-	
-	while(1) {
-		result=fgets(buffer,BUFSIZ,fff);
-		if (result==NULL) break;
-		
-		if (!strncmp(result,"vendor_id",8)) {
-			sscanf(result,"%*s%*s%s",vendor);
-			
-			if (strncmp(vendor,"GenuineIntel",12)) {
-				printf("%s not an Intel chip\n",vendor);
-				return -1;
-			}
-		}
-		
-		if (!strncmp(result,"cpu family",10)) {
-			sscanf(result,"%*s%*s%*s%d",&family);
-			if (family!=6) {
-				printf("Wrong CPU family %d\n",family);
-				return -1;
-			}
-		}
-		
-		if (!strncmp(result,"model",5)) {
-			sscanf(result,"%*s%*s%d",&model);
-		}
-		
-	}
-	
-	fclose(fff);
-	
-	switch(model) {
-		case CPU_SANDYBRIDGE:
-			printf("Found Sandybridge CPU\n");
-			break;
-		case CPU_SANDYBRIDGE_EP:
-			printf("Found Sandybridge-EP CPU\n");
-			break;
-		case CPU_IVYBRIDGE:
-			printf("Found Ivybridge CPU\n");
-			break;
-		case CPU_IVYBRIDGE_EP:
-			printf("Found Ivybridge-EP CPU\n");
-			break;
-		case CPU_HASWELL:
-			printf("Found Haswell CPU\n");
-			break;
-		default:	printf("Unsupported model %d\n",model);
-		model=-1;
-		break;
-	}
-	
-	return model;
-}
-
-#define RAPL_HAVE_PKG_ENERGY_STATUS		0x0001
-#define RAPL_HAVE_PP0_ENERGY_STATUS		0x0002
-#define RAPL_HAVE_PP1_ENERGY_STATUS		0x0004
-#define RAPL_HAVE_DRAM_ENERGY_STATUS		0x0008
-#define RAPL_HAVE_PKG_PERF_STATUS		0x0010
-#define RAPL_HAVE_PP0_PERF_STATUS		0x0020
-#define RAPL_HAVE_PP1_PERF_STATUS		0x0040
-#define RAPL_HAVE_DRAM_PERF_STATUS		0x0080
-
-static unsigned detect_rapl(int cpu_model) {
-	unsigned capab = (RAPL_HAVE_PKG_ENERGY_STATUS | RAPL_HAVE_PP0_ENERGY_STATUS);
-	
-	/* only available on *Bridge-EP */
-	if ((cpu_model==CPU_SANDYBRIDGE_EP) || (cpu_model==CPU_IVYBRIDGE_EP)) {
-		capab |= (RAPL_HAVE_PKG_PERF_STATUS | RAPL_HAVE_PP0_PERF_STATUS);
-	}
-	
-	/* not available on *Bridge-EP */
-	if ((cpu_model==CPU_SANDYBRIDGE) || (cpu_model==CPU_IVYBRIDGE) || (cpu_model==CPU_HASWELL)) {
-		capab |= RAPL_HAVE_PP1_ENERGY_STATUS;
-	}
-	
-	/* Despite documentation saying otherwise, it looks like */
-	/* You can get DRAM readings on regular Haswell          */
-	if ((cpu_model==CPU_SANDYBRIDGE_EP) || (cpu_model==CPU_IVYBRIDGE_EP) || (cpu_model==CPU_HASWELL)) {
-		capab |= RAPL_HAVE_DRAM_ENERGY_STATUS;
-	}
-	
-	return capab;
 }
 
 static int do_affinity(int core) {
@@ -260,22 +141,22 @@ static double timespec_to_double(struct timespec *a) {
 }
 
 int main(int argc, char **argv) {
-	
 	int fd = -1;
 	int core = 0;
 	int c = 0;
 	uint64_t result = 0;
-	int cpu_model = -1;
-	unsigned capab = 0;
-	int i = 0, iteration = 0;
+	int i = 0, iteration = 0, duration = 1;
 	
 	opterr=0;
 	
-	while ((c = getopt (argc, argv, "c:")) != -1) {
+	while ((c = getopt (argc, argv, "c:t:")) != -1) {
 		switch (c)
 		{
 			case 'c':
 				core = atoi(optarg);
+				break;
+			case 't':
+				duration = atoi(optarg);
 				break;
 			default:
 				exit(-1);
@@ -283,14 +164,6 @@ int main(int argc, char **argv) {
 	}
 	
 	do_affinity(core);
-	
-	cpu_model=detect_cpu();
-	if (cpu_model<0) {
-		printf("Unsupported CPU type\n");
-		return -1;
-	}
-	
-	capab = detect_rapl(cpu_model);
 	
 	fd=open_msr(core);
 	
@@ -303,11 +176,11 @@ int main(int argc, char **argv) {
 	struct timespec tgap = {0, 0};
 	double fgap = 0.0;
 	std::vector<double> gaps;
-	gaps.reserve(MAX_GAPS);
+	gaps.reserve(duration * MAX_GAPS);
 	double sum_gaps = 0.0;
 	double biggest_gap = 0.0;
 	int num_gaps = -1;
-	for (iteration = 0; num_gaps < MAX_GAPS; iteration++) {
+	for (iteration = 0; num_gaps < duration * MAX_GAPS; iteration++) {
 		result = read_msr(fd, MSR_PKG_ENERGY_STATUS);
 		if (result != prev_energy) {
 			prev_energy = result;
@@ -344,7 +217,20 @@ int main(int argc, char **argv) {
 		double diff = gaps[i] - avg_gap;
 		sum_squares += diff * diff;
 	}
-	printf("Standard deviation of the gaps is %f microseconds.\n", sqrt(sum_squares / num_gaps) * 1000000.0);
+	double std_dev = sqrt(sum_squares / num_gaps);
+	printf("Standard deviation of the gaps is %f microseconds.\n", std_dev * 1000000.0);
+	
+#if 0
+	// Calculate skewnewss
+	double sum_cubes = 0.0;
+	for (i = 0; i < num_gaps; i++) {
+		double diff = gaps[i] - avg_gap;
+		sum_cubes += diff * diff * diff;
+	}
+	double third_moment = sum_cubes / num_gaps;
+	double skewness = third_moment / pow(std_dev, 3.0);
+	printf("Skewness is %f microseconds.\n", skewness * 1000000.0);
+#endif
 	
 	// Dump the gaps to a file
 	FILE *fp = fopen("gaps-msr.csv", "w");
@@ -361,7 +247,6 @@ int main(int argc, char **argv) {
 	// Kill compiler warnings
 	(void)argc;
 	(void)argv;
-	(void)capab;
 	(void)result;
 	
 	return 0;
