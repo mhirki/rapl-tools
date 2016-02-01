@@ -4,7 +4,7 @@ CC = gcc
 CXX = g++
 LIBS_PAPI = -lpapi
 
-BINARY_TARGETS = papi-poll-gaps papi-poll-energy papi-poll-pkg get-energy linux-test-clocks linux-print-clocks linux-print-timestamp linux-print-tsc papi-poll-latency papi-poll-perf-latency msr-poll-gaps msr-poll-gaps-nsec msr-poll-gaps-nsec-and-power msr-poll-latency msr-get-core-voltage msr-get-perf-bias msr-set-perf-bias papi-poll-timings papi-poll-tsc-gaps papi-poll-latency-multiple papi-measure-instruction papi-list-components papi-list-perf-events papi-measure-exp papi-measure-malloc papi-measure-calloc test-setitimer-resolution test-itimer-prof watcher trace-energy trace-energy-1khz trace-energy-with-time trace-energy-v2 trace-temp-msr papi-perf-counters papi-perf-counters-latency linux-find-gaps linux-find-gaps-lite linux-pread-latency gaps-stats
+BINARY_TARGETS = papi-poll-gaps papi-poll-energy papi-poll-pkg get-energy linux-test-clocks linux-print-clocks linux-print-timestamp linux-print-tsc papi-poll-latency papi-poll-perf-latency msr-poll-atomicity msr-poll-atomicity-high-accuracy msr-poll-gaps msr-poll-gaps-nsec msr-poll-gaps-nsec-and-power msr-poll-latency msr-get-core-voltage msr-get-perf-bias msr-set-perf-bias papi-poll-timings papi-poll-tsc-gaps papi-poll-latency-multiple papi-measure-instruction papi-list-components papi-list-perf-events papi-measure-exp papi-measure-malloc papi-measure-calloc test-setitimer-resolution test-itimer-prof watcher trace-energy trace-energy-1khz trace-energy-with-time trace-energy-v2 trace-temp-msr trace-energy-and-temp-msr papi-perf-counters papi-perf-counters-latency linux-find-gaps linux-find-gaps-lite linux-pread-latency gaps-stats
 
 all: $(BINARY_TARGETS)
 
@@ -36,6 +36,12 @@ linux-print-clocks: linux-print-clocks.c
 
 linux-print-timestamp: linux-print-timestamp.c
 	$(CC) $(CFLAGS) -o $@ $^ -lrt
+
+msr-poll-atomicity: msr-poll-atomicity.cc
+	$(CXX) $(CXXFLAGS) -o $@ $^ -lrt
+
+msr-poll-atomicity-high-accuracy: msr-poll-atomicity-high-accuracy.cc
+	$(CXX) $(CXXFLAGS) -o $@ $^ -lrt
 
 msr-poll-gaps-nsec: msr-poll-gaps-nsec.cc
 	$(CXX) $(CXXFLAGS) -o $@ $^ -lrt
@@ -89,7 +95,10 @@ trace-energy-v2: trace-energy-v2.cc util.cc
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS_PAPI) -lrt
 
 trace-temp-msr: trace-temp-msr.cc util.cc
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS_PAPI) -lrt
+	$(CXX) $(CXXFLAGS) -o $@ $^ -lrt
+
+trace-energy-and-temp-msr: trace-energy-and-temp-msr.cc util.cc
+	$(CXX) $(CXXFLAGS) -o $@ $^ -lrt
 
 papi-perf-counters: papi-perf-counters.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS_PAPI)
