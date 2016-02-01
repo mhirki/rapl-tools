@@ -256,7 +256,7 @@ static void handle_sigalrm() {
 	short pkg_temp = 0, core0_temp = 0, core1_temp = 0, core2_temp = 0, core3_temp = 0;
 	uint32_t pkg_energy = 0, pp0_energy = 0, pp1_energy = 0, dram_energy = 0;
 	struct timespec now = { 0, 0 };
-	int idx_prev_sample = v_temp_numbers.size() - 1;
+//	int idx_prev_sample = v_temp_numbers.size() - 1;
 	bool is_duplicate = true; // Ignore duplicates in case we are supersampling
 	
 	pkg_energy = read_energy(core0_fd, MSR_PKG_ENERGY_STATUS);
